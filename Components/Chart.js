@@ -3,16 +3,16 @@ import { Bar,Line,Pie } from 'react-chartjs-2';
 
 class Chart extends Component{
     constructor(props){
-        super(props);
+        super(props);             //to intialise the parent constructor. Refer react documentation.
         this.state={
-            chartData:props.chartData
+            chartData:props.chartData                           
         
     }}
 static defaultProps ={
-    displayTile:true,
+    displayTile:true,                    
     displayLegend:true,
     legendPosition:'right',
-    location:'temperature'
+    location:'temperature'                            //the location must be made customisable.
 
 }    
     render(){
@@ -26,7 +26,7 @@ static defaultProps ={
                         title:{
                             display:this.props.displayTitle,
                     
-                            text:this.props.location + ' data across time',
+                            text:this.props.location + ' data across time',          //notice there is no hardcoding, but the parameter must be passable by the client
                             fontSize:25
                         },
                         legend:{
@@ -46,7 +46,7 @@ static defaultProps ={
                         title:{
                             display:this.props.displayTitle,
                     
-                            text:this.props.location + ' data across time',
+                            text:this.props.location + ' data across time',     //notice there is no hardcoding, but the parameter must be passable by the client
                             fontSize:25
                         },
                         legend:{
