@@ -41,7 +41,7 @@ app.use('/advanced', (req, res) => {
     var current_hour = reading.timeStamp.getHours();
     var current_sensorId = reading.sensorId;
    
-    if (true == is_hour_in_cache(current_hour, current_sensorId))
+    if (true == is_hour_in_cache(current_hour, current_day, current_month, current_year, current_sensorId))
     {
         Hour_Schema.findOne({hour: current_hour, 
                             date: current_day, 
@@ -68,15 +68,14 @@ app.use('/advanced', (req, res) => {
                         console.log('old hour object saved successfuly');
                     }
                 });
-                current_hourlyData = hourlyData; 
                 console.log('existing hour object saved successfuly');
             }
         })
     }
     else//means a new hour
     {
-        //***remove from mongodb also */
-        remove_from_hour_cache(current_hour, current_day, current_month, current_year, current_sensorId);
+        previousHour = last_hour(current_hour, current_day, current_month, current_year)
+        remove_from_hour_cache(previousHour[0], previousHour[1], previousHour[2], previousHour[3], current_sensorId);
         //insert new data into cache
         last_stored_hours.push({sensorId: current_sensorId, hour: current_hour, day: current_day, month: current_month, year: current_year});
 
@@ -95,42 +94,13 @@ app.use('/advanced', (req, res) => {
             {
                 console.log('new hour object saved successfuly');
             }
-        });       
-        current_hourlyData = hourlyData;           
+        });                
     }
    
 
     if (true == is_day_in_cache(current_day, current_month, current_year, current_sensorId))
     {
         //do nothing
-
-        // Day_Schema.findOne({date: current_day, month: current_month, year: current_year, sensorId: current_sensorId}, (err, dayObj) => {
-        //     if (err)
-        //     {
-        //         console.log('some error');
-        //     }
-        //     else
-        //     {
-        //         Hour_Schema.find({date: current_day}, (err, hourlyDataArray) => {
-
-        //         })
-        //         dailyData.hourArray.push(current_hourObj);
-        //         console.log('this is old dailyData: ' + dailyData)
-        //         dailyData.save(err => {
-        //             if (err)
-        //             {
-        //                 console.log('error while saving old dailyData');
-        //                 console.log('error is : ' + err);
-        //             }
-        //             else
-        //             {
-        //                 console.log('old day object saved successfuly');
-        //             }
-        //         });
-        //         current_dailyData = dailyData;
-        //         console.log('existing day object saved successfuly');
-        //     }
-        // })
     }
     else
     {
@@ -157,34 +127,9 @@ app.use('/advanced', (req, res) => {
         });   
     }
 
-    if (true == is_month_in_cache(current_month))
+    if (true == is_month_in_cache(current_month, current_year, current_sensorId))
     {
         //do nothing
-
-        // Month_Schema.findOne({sensorId: current_sensorId, month: current_month, year: current_year}, (err, monthlyData) => {
-        //     if (err)
-        //     {
-        //         console.log('some error');
-        //     }
-        //     else
-        //     {
-        //         // monthlyData.dayArray.push(current_dayObj);
-        //         console.log('this is old monthlyData: ' + monthlyData)
-        //         monthlyData.save(err => {
-        //             if (err)
-        //             {
-        //                 console.log('error while saving old monthlyData');
-        //                 console.log('error is : ' + err);
-        //             }
-        //             else
-        //             {
-        //                 console.log('old month object saved successfuly');
-        //             }
-        //         });
-        //         // current_monthlyData = monthlyData;
-        //         console.log('existing month object saved successfuly');
-        //     }
-        // })
     }
     else
     {
@@ -197,7 +142,8 @@ app.use('/advanced', (req, res) => {
         monthlyData = new Month_Schema({
             sensorId: current_sensorId, month: current_month, year: current_year , dayArray: []
         });
-        // monthlyData.dayArray.push(current_dayObj);
+        // get all daily objects of this month and this sensorId and store them in month
+        // and remove them from daily data queue in mongodb
         console.log('this is new monthlyData: ' + monthlyData);
         monthlyData.save(err => {
             if (err)
@@ -212,7 +158,7 @@ app.use('/advanced', (req, res) => {
         });   
     }
 
-    if (true == is_year_in_cache(current_year))
+    if (true == is_year_in_cache(current_year, current_sensorId))
     {
         //do nothing
     }
@@ -308,13 +254,13 @@ function last_day(current_day, current_month, current_year)
 }
 function last_hour(current_hour, current_day, current_month, current_year)
 {
-    if (hour == 0)
+    if (current_hour == 0)
     {
         return [23].append(last_day(current_day, current_month, current_year));   
     }
     else
     {
-        return [last_hour-1, current_current_day, current_month, current_year];
+        return [last_hour-1, current_day, current_month, current_year];
     }
 }
 
