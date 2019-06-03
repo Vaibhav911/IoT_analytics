@@ -3,8 +3,6 @@ var app = express();
 var cors = require('cors');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
-var moment = require('moment');
-
 
 var {Year_Schema} = require('./IoT_Data_Schema.js');
 var {Month_Schema} = require('./IoT_Data_Schema.js');
@@ -18,11 +16,6 @@ app.use(cors());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-var test_var = 0;
-function test_func(i)
-{
-    console.log('variable passed is ' + i);
-};
 
 var last_stored_years = [] ; //array to store timestamps of last stored annual data in queue
 var last_stored_months = [];//array to store timestamps of last stored monthly data in queue
@@ -31,6 +24,8 @@ var last_stored_hours = [];//array to store timestamps of last stored hourly dat
 
 //****************************** introduce hashing to it later.
 //****************************** also flush data if sensor stops working
+
+var working_sensors = []//use this to find and clear data of faulty servers from mongodb
 
 app.use('/advanced', (req, res) => {
     var reading = new Reading_Schema({sensorId: 1, temperature: 1, humidity: 4, luminosity: 5});
@@ -108,23 +103,46 @@ app.use('/advanced', (req, res) => {
         remove_from_day_cache(previousDay[0], previousDay[1], previousDay[2], current_sensorId);
         //insert into cache
         last_stored_days.push({sensorId: current_sensorId, day: current_day, month: current_month, year: current_year});
-       //remove hour obejcts from mongodb and put them into day object
-        // Hour_Schema.remove({sensorId: current_sensorId}); //remove hour objects from mongodb;
+
         dailyData = new Day_Schema({
             sensorId: current_sensorId, date: current_day, month: current_month, year: current_year, hourArray: []
         });
-        console.log('this is new dailyData: ' + dailyData);
-        dailyData.save(err => {
-            if (err)
-            {
-                console.log('error while saving new dailyData');
-                console.log('error is: ' + err);
-            }
-            else
-            {
-                console.log('new day object saved successfuly');
-            }
-        });   
+
+        Hour_Schema.find({sensorId: current_sensorId,
+                             day: previousDay[0],
+                             month: previousDay[1], 
+                             year: previousDay[2]}, 
+                             (err, hourlyDataArray) =>
+                             {
+                                 if (err)
+                                 {
+                                     console.log('some problem in fetching data');
+                                 }
+                                 else
+                                 {
+                                     console.log('object from hourlyDataArray ' + JSON.stringify(hourlyDataArray));
+                                     for (var i=0;i<hourlyDataArray.length; i++)
+                                     {
+                                         dailyData.hourArray.push(hourlyDataArray[i]);
+                                     }
+                                     dailyData.save(err => {
+                                         if (err)
+                                         {
+                                             console.log('error while saving hourlyData to dailyData');
+                                             console.log('error is ' + err);
+                                         }
+                                         else
+                                         {
+                                             Hour_Schema.deleteMany({sensorId: current_sensorId, 
+                                                day: previousDay[0],
+                                                month: previousDay[1], 
+                                                year: previousDay[2]})
+                                         }
+                                     })
+                                 }
+                             })
+
+        console.log('this is new dailyData: ' + dailyData);  
     }
 
     if (true == is_month_in_cache(current_month, current_year, current_sensorId))
@@ -137,25 +155,39 @@ app.use('/advanced', (req, res) => {
         remove_from_month_cache(previousMonth[0], previousMonth[1], current_sensorId);
         //insert into cache
         last_stored_months.push({sensorId: current_sensorId, month: current_month, year: current_year});
-        //remove daily data from mongodb and store it in previous month object
-        // Day_Schema.remove({sensorId: current_sensorId});
+
         monthlyData = new Month_Schema({
             sensorId: current_sensorId, month: current_month, year: current_year , dayArray: []
         });
-        // get all daily objects of this month and this sensorId and store them in month
-        // and remove them from daily data queue in mongodb
-        console.log('this is new monthlyData: ' + monthlyData);
-        monthlyData.save(err => {
-            if (err)
-            {
-                console.log('error while saving new monthlyData');
-                console.log('error is: ' + err);
-            }
-            else
-            {
-                console.log('new month object saved successfuly');
-            }
-        });   
+
+        Day_Schema.find({sensorId: current_sensorId, month: previousMonth[0], year: previousMonth[1]},
+                        (err, dailyDataArray) => {
+                            if (err)
+                            {
+                                console.log('error while fetching dailyDataArray from mongodb');
+                                console.log('error is: ' + err);
+                            }
+                            else
+                            {
+                                for (var i=0;i<dailyDataArray.length;i++)
+                                {
+                                    monthlyData.dayArray.push(dailyDataArray[i]);
+                                }
+                                monthlyData.save(err => {
+                                    if (err)
+                                    {
+                                        console.log('error while saving monthly data');
+                                    }
+                                    else
+                                    {
+                                        Day_Schema.deleteMany({sensorId: current_sensorId,
+                                                               month: previousMonth[0], 
+                                                               year: previousMonth[1]});
+                                    }
+                                })
+                            }
+                        })
+        console.log('this is new monthlyData: ' + monthlyData); 
     }
 
     if (true == is_year_in_cache(current_year, current_sensorId))
@@ -164,28 +196,47 @@ app.use('/advanced', (req, res) => {
     }
     else
     {
-        //remove monthly data from mongodb and put it here
         var previousYear = last_year(current_year);
         remove_from_year_cache(previousYear,current_sensorId);
-        Month_Schema.remove({sensorId: current_sensorId});
+        last_stored_years.push({sensorId: current_sensorId, year: current_year});
+
         annualData = new Year_Schema({
             sensorId: current_sensorId, year: current_year, monthArray: []
         });
-        // annualData.monthArray.push(current_monthObj);
-        console.log('this is new annualData: ' + annualData);
-        annualData.save(err => {
-            if (err)
-            {
-                console.log('error while saving new annualData');
-                console.log('error is: ' + err);
-            }
-            else
-            {
-                console.log('new year object saved successfuly');
-            }
-        });   
+
+        Month_Schema.find({sensorId: current_sensorId,
+                           year: previousYear},
+                           (err, monthlyDataArray) => {
+                               if (err)
+                               {
+                                   console.log('error while fetching monthly data from mongodb');
+                               }
+                               else
+                               {
+                                   for (var i=0;i<monthlyDataArray.length;i++)
+                                   {
+                                       annualData.monthArray.push(monthlyDataArray[i])
+                                   }
+                                   annualData.save(err => {
+                                       if (err)
+                                       {
+                                           console.log('error while save annualData');
+                                       }
+                                       else
+                                       {
+                                           Month_Schema.deleteMany({sensorId: current_sensorId,
+                                                                    year: previousYear});
+                                       }
+                                   })
+                               }
+                           })
+        console.log('this is new annualData: ' + annualData); 
     }
 
+    console.log('last_stored_hours' + JSON.stringify(last_stored_hours));
+    console.log('last_stored_days' + JSON.stringify(last_stored_days));
+    console.log('last_stored_months' + JSON.stringify(last_stored_months));
+    console.log('last_stored_years' + JSON.stringify(last_stored_years));
 
 })
 function last_year(current_year)
