@@ -25,20 +25,20 @@ for (i=1; i<=9; i++)
 }
 
 //replace the reading object instantiation in server.js with this:
-var i;
+var i=0;
 var dt = new Date(Date.now());
-for (i=0; i<168; i++)
-{
+var createObjs = setInterval(function(){
     dt.setHours( dt.getHours() + i);
     var sensorIdToPass = Math.floor(Math.random()*3) + 1;
     var humidityToPass = Math.floor(Math.random()*3) + 78;
     var temperatureToPass = Math.floor(Math.random()*13) + 21;
     var luminosityToPass = Math.floor(Math.random()*23001) + 78;
-    setTimeout(() => {
-        var reading = new Reading_Schema({timeStamp: dt,
+    var reading = new Reading_Schema({timeStamp: dt,
         sensorId: sensorIdToPass,
         temperature: temperatureToPass,
         humidity: humidityToPass,
         luminosity: luminosityToPass})
-    }, 5000);
-}
+    i = i + 1;
+    if(i==168) {
+        clearInterval(createObjs);
+    }}, 2000);
