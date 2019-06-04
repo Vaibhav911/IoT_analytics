@@ -30,13 +30,15 @@ var dt = new Date(Date.now());
 for (i=0; i<168; i++)
 {
     dt.setHours( dt.getHours() + i);
-    var sensorIdToPass = Math.floor(Math.random()*9) + 1;
+    var sensorIdToPass = Math.floor(Math.random()*3) + 1;
     var humidityToPass = Math.floor(Math.random()*3) + 78;
     var temperatureToPass = Math.floor(Math.random()*13) + 21;
     var luminosityToPass = Math.floor(Math.random()*23001) + 78;
-    var reading = new Reading_Schema({timeStamp: dt,
+    setTimeout(() => {
+        var reading = new Reading_Schema({timeStamp: dt,
         sensorId: sensorIdToPass,
         temperature: temperatureToPass,
         humidity: humidityToPass,
         luminosity: luminosityToPass})
+    }, 5000);
 }
