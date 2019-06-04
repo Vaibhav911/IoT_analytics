@@ -28,15 +28,14 @@ var last_stored_hours = [];//array to store timestamps of last stored hourly dat
 
 var working_sensors = []//use this to find and clear data of faulty servers from mongodb
 
-app.use('/test', (req, res) => {
-    date = new Date();
-    console.log('date is ' + date.getMonth());
-    res.json(date.getDate());
-}); 
-
 app.use('/advanced', (req, res) => {
-    var reading = new Reading_Schema({sensorId: 1, temperature: 1, humidity: 4, luminosity: 5});
+
+
+    function temp(reading)
+    {
+    // var reading = new Reading_Schema({sensorId: 1, temperature: 1, humidity: 4, luminosity: 5});
     console.log('current hour is ' + reading.timeStamp.getHours());
+    
 
     var current_month =  reading.timeStamp.getMonth();
     var current_year = reading.timeStamp.getYear();
@@ -44,12 +43,9 @@ app.use('/advanced', (req, res) => {
     var current_hour = reading.timeStamp.getHours();
     var current_sensorId = reading.sensorId;
 
-    // console.log('last_stored_year: ' + last_stored_year);
-    // console.log('last_stored_month: ' + last_stored_month);
-    // console.log('last_stored_day: ' + last_stored_day);
-    // // console.log('last_stored_hour: ' + last_stored_hour);    
-   
-    if (-1 != is_hour_in_cache(current_hour, current_day, current_month, current_year, current_sensorId))
+    console.log('current sensoer id is ' + current_sensorId);
+
+    if (-1 != is_hour_in_cache(current_hour, current_day, current_month, current_year, current_sensorId))//hour has not been changed
     {
         console.log('current hour is in cache');
         Hour_Schema.findOne({hour: current_hour, 
@@ -64,6 +60,7 @@ app.use('/advanced', (req, res) => {
             }
             else
             {
+                // console.log('document recieved from hour_schmea.fndONe ' + JSON.stringify(hourlyData));
                 hourlyData.readingArray.push(reading);
                 console.log('this is old hourlyData: ' + hourlyData)
                 hourlyData.save(err => {
@@ -77,19 +74,18 @@ app.use('/advanced', (req, res) => {
                         console.log('old hour object saved successfuly');
                     }
                 });
-                console.log('existing hour object saved successfuly');
             }
         })
+        console.log('done with hour_schema.findOne');
     }
     else//means a new hour
     {
         console.log('current hour is not in cache');
-        console.log('index returned is ' + is_hour_in_cache(current_hour, current_day, current_month, current_year, current_sensorId));
         previousHour = last_hour(current_hour, current_day, current_month, current_year)
         remove_from_hour_cache(previousHour[0], previousHour[1], previousHour[2], previousHour[3], current_sensorId);
+       
         //insert new data into cache
         last_stored_hours.push({sensorId: current_sensorId, hour: current_hour, day: current_day, month: current_month, year: current_year});
-        console.log('last stored hours arary is ' + JSON.stringify(last_stored_hours));
         hourlyData = new Hour_Schema({
             sensorId: current_sensorId, hour: current_hour, date: current_day, month: current_month, year: current_year, readingArray: []
         });
@@ -112,25 +108,34 @@ app.use('/advanced', (req, res) => {
     if (current_day == last_stored_day)//if day has not changed
     {
         //do nothing
+        console.log('day checked');
     }
     else//if day has changed
     {
+        console.log('day checked');
         //store current day in mongodb also
+        console.log('current day: ' + current_day);
+        console.log('current month: ' + current_month);
+        console.log('current year: ' + current_year);
         var previousDay = last_day(current_day, current_month, current_year);
 
         dailyData = new Day_Schema({
             sensorId: current_sensorId, date: current_day, month: current_month, year: current_year, hourArray: []
         });
-
+        console.log('queryign data');
+        console.log('sensorId: ' +  current_sensorId);
+        console.log('date: ' +  previousDay[0]);
+        console.log('month: ' +  previousDay[1]);
+        console.log('previoiu year: ' +  previousDay[2]);
         Hour_Schema.find({sensorId: current_sensorId,
-                             day: previousDay[0],
+                             date: previousDay[0],
                              month: previousDay[1], 
                              year: previousDay[2]}, 
                              (err, hourlyDataArray) =>
                              {
                                  if (err)
                                  {
-                                     console.log('some problem in fetching data');
+                                     console.log('some problem in fetching hourly data');
                                  }
                                  else
                                  {
@@ -151,12 +156,11 @@ app.use('/advanced', (req, res) => {
                                                 day: previousDay[0],
                                                 month: previousDay[1], 
                                                 year: previousDay[2]})
+                                            console.log('objects deleted successfully');
                                          }
                                      })
                                  }
                              })
-
-        console.log('this is new dailyData: ' + dailyData);  
     }
 
     if (current_month == last_stored_month)//it is same month
@@ -198,7 +202,6 @@ app.use('/advanced', (req, res) => {
                                 })
                             }
                         })
-        console.log('this is new monthlyData: ' + monthlyData); 
     }
 
     if (current_year == last_stored_year)//year has not changed
@@ -241,6 +244,26 @@ app.use('/advanced', (req, res) => {
                            })
         console.log('this is new annualData: ' + annualData); 
     }  
+    }
+
+var i;
+var dt = new Date(Date.now());
+// for (i=0; i<10; i++)
+{
+    dt.setHours( dt.getHours() + 20);
+    var sensorIdToPass = Math.floor(Math.random()*3) + 1;
+    var humidityToPass = Math.floor(Math.random()*3) + 78;
+    var temperatureToPass = Math.floor(Math.random()*13) + 21;
+    var luminosityToPass = Math.floor(Math.random()*23001) + 78;
+    var reading = new Reading_Schema({timeStamp: dt,
+        sensorId: sensorIdToPass,
+        temperature: temperatureToPass,
+        humidity: humidityToPass,
+        luminosity: luminosityToPass})
+    console.log('reading is ' + JSON.stringify(reading));
+    temp(reading);
+}
+
 
 })
 function last_year(current_year)
@@ -311,7 +334,7 @@ function last_hour(current_hour, current_day, current_month, current_year)
 {
     if (current_hour == 0)
     {
-        return [23].append(last_day(current_day, current_month, current_year));   
+        return [23].push(last_day(current_day, current_month, current_year));   
     }
     else
     {
@@ -403,7 +426,7 @@ function is_day_in_cache(current_day, current_month, current_year, sensorId)//th
 
 function is_hour_in_cache(current_hour, current_day, current_month, current_year, sensorId)//this checks is current hour is stored in cache
 {
-    console.log('inside is_hour_in_cache');
+    // console.log('inside is_hour_in_cache');
 
     for (var i=0;i<last_stored_hours.length;i++)
     {
