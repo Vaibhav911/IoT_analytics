@@ -1,6 +1,71 @@
 import React,  {Component} from 'react';
 import { Bar,Line,Pie } from 'react-chartjs-2';  
 
+// class Form extends Component{
+//     constructor(props){
+//         super(props)
+//         this.state={
+//                     sensorId: '',
+//                     frequency: '3'
+//         }
+//     }
+// handlesensorIdchange= event =>
+// {
+// this.setState(
+//     {
+//         sensorId:event.target.value
+//     }
+// )
+// }
+// handleFrequencyChange= event =>
+// {
+//     this.setState(
+//         {
+//             frequency:event.target.value
+//         }
+//     )
+// }
+// handleSubmit = event =>{
+//     this.setState({
+//         sensorId: event.target.value,
+
+//     })
+// }
+// // <div id='layout'>
+//             //     <div className='clientInput'></div>
+//     render(){   
+//         return(     
+//             // </div>
+//             <form onSubmit={this.handleSubmit}>
+//                 <div>
+//                     <label>Senor ID</label>
+//                     <input type="text" value={this.state.sensorId} onChange={this.handlesensorIdchange}/>
+//                 </div>
+//                 <div>
+//                     <label>
+//                         Frequency of data
+//                     </label>
+//                     <select value={this.state.frequency} onChange={this.handleFrequencyChange}>
+//                         <option value ="yearly">Yearly</option>
+//                         <option value ="monthly">Monthly</option>
+//                         <option value ="daily">Daily</option>
+//                         <option value ="hourly">Hourly</option>
+ 
+//                     </select>
+//                 </div>
+//                 <button type="submit">Submit</button>
+//             </form>
+            
+            
+//         )
+//     }
+// }
+
+
+
+
+
+
 class Chart extends Component{
     constructor(props){
         super(props);             //to intialise the parent constructor. Refer react documentation.
@@ -17,7 +82,10 @@ static defaultProps ={
 }    
     render(){
         return(
-             <div classname="chart">
+            
+
+            <div>
+            
                  <Bar
                     data={this.state.chartData}
                     
