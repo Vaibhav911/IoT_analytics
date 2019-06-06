@@ -29,7 +29,7 @@ var i=0;
 var dt = new Date(Date.now());
 var createObjs = setInterval(function(){
     dt.setHours( dt.getHours() + i);
-    var sensorIdToPass = Math.floor(Math.random()*3) + 1;
+    var sensorIdToPass = 1 + i%3;
     var humidityToPass = Math.floor(Math.random()*3) + 78;
     var temperatureToPass = Math.floor(Math.random()*13) + 21;
     var luminosityToPass = Math.floor(Math.random()*23001) + 78;
