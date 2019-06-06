@@ -1,51 +1,68 @@
 import React, { Component } from 'react';
 import './App.css';
-import Chart from './Components/Chart'
+import axios from 'axios'
+import Chart from './Chart';
 
 class App extends Component {
   constructor(){
     super();
-    this.state={
+    this.state = {
       chartData:{}
-
     }
   }
- 
- componentWillMount(){
-   this.getChartData();
- }
-  getChartData()
-  {this.setState({
-      chartData:{
-      labels: [
-          '1 hour','2hour','3 hour','4 hour'],
-      datasets:[
-          {   //sample dataset.....needs to be passed
-              label:'Temperature',
-              data:[
-                  35
-              ,33,45,45
-              ],
-            //try to make this customisable
-              backgroundColor:['rgba(254,99,132,0.6)','rgba(0, 255, 0, 0.3)','rgba(0, 0, 255, 0.3)','rgba(254,255,132,0.6)']
-          }
-      ]
+
+  componentDidMount() {
+    this.getChartData();
   }
 
-    
-  })}
-  render() {
-    return (
-      <div className="App">
-        <div className="App-header">
-         
-          <h2>Graphs
-          </h2>
-        </div>
-        <Chart chartData={this.state.chartData} location='temperature'/>
-      </div>
-    );
-  }
+  getChartData() {
+    axios.get( "http://localhost:5000/graphtesting").then(res => {
+        let labels = [];
+        let data = [];
+        let backgroundColor = [];
+        var t_no = res.data.temperatures.length;
+        console.log(t_no);
+        for (var i=0;i<t_no;i++)
+            {
+              labels.push(res.data.labels[i]);
+              data.push(res.data.temperatures[i]);
+              var red = Math.floor(Math.random()*256);
+              var blue = Math.floor(Math.random()*256);
+              var green = Math.floor(Math.random()*256);
+              backgroundColor.push("rgba("+red+", "+blue+", "+green+", 0.6)");
+            } 
+
+      //  console.log(backgroundColor);
+        this.setState({
+          chartData: {
+            labels:labels,
+            datasets: [
+              {
+                label: "Temperature",
+                data: data,
+                backgroundColor: backgroundColor,
+              }
+            ]
+          }
+        });
+      });
+    }
+
+  render(){
+
+        return (
+          <div className="App">
+          {Object.keys(this.state.chartData).length &&
+            <Chart
+              chartData={this.state.chartData}
+              location="temperature"
+              legendPosition="bottom"
+            />
+          }
+          </div>
+        );
+
+    }     
 }
 
 export default App;
