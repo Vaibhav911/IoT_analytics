@@ -14,26 +14,27 @@ var Reading_Schema = new Schema({
     humidity : {type: Number}
 });
 
-// var testSchema = db.Schema({
-//     "one": { "type": String, "required": true },
-//     "two": { "type": String, "required": true }
-// }, { "strict": false });
-
 var Hour_Schema = new Schema({
     sensorId : { type: Number, required: true},
-    hour : { type: Number, required: true,},
+    hour : { type: Number, required: true},
+    date : { type: Number, required: true},
+    month : { type: Number, required: true},
+    year: {type: Number, required: true},
     readingArray : [Reading_Schema]
 });
 
 var Day_Schema = new Schema({
     sensorId : { type: Number, required: true},
     date : { type: Number, required: true},
+    month : { type: Number, required: true},
+    year: {type: Number, required: true},
     hourArray : [Hour_Schema]
 });
 
 var Month_Schema = new Schema({
     sensorId : { type: Number, required: true},
-    month : { type: String, required: true},
+    month : { type: Number, required: true},
+    year: {type: Number, required: true},
     dayArray : [Day_Schema]
 });
 
