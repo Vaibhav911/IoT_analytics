@@ -95,12 +95,107 @@ app.use('/graphtesting', (req, res) => {
             frequencyFromUser = -1;
             break;
     }
-    
-    Year_Schema.find({ 
-            // date: current_day, 
-            // month:current_month, 
-            // year: {$gte: timeBeginForUser.getYear(), $lte: timeEndForUser.getYear()},
-            // sensorId: sensorIdFromUser, monthArray: {$ne: []}
+    if (timeBeginForUser.getYear()<timeEndForUser.getYear())
+    {
+        Year_Schema.find({ 
+                year: {$gte: timeBeginForUser.getYear(), $lte: timeEndForUser.getYear()},
+                sensorId: sensorIdFromUser, monthArray: {$ne: []}
+                },(err,yearsMatchingUserQuery) => {
+                    if(err)
+                    {
+                        console.log('Error in Graph testing'+ err);
+                    }
+                    else
+                    {
+                        console.log("result llength:" + yearsMatchingUserQuery.length);
+                        // console.log("Hourly data:" + JSON.stringify(data.readingArray[0]));
+                        // console.log("Hourly data:" + JSON.stringify(data.readingArray[0].timeStamp.getHours()));
+                        // console.log("Temperature:" + JSON.stringify(data.readingArray[0].temperature)); 
+                        // console.log('lenght of data' + data.readingArray.length);
+                        var yearlyTempDataArray = [];
+                        for (var i=0;i<yearsMatchingUserQuery.length;i++)
+                        {
+                            console.log("Year:"+yearsMatchingUserQuery[i].year+", Sensor: "+yearsMatchingUserQuery[i].sensorId+
+                            ", Months: "+yearsMatchingUserQuery[i].monthArray.length);
+                            var monthlyTempDataObject = {bigArray: []};
+                            // dataArr.push({hour: JSON.stringify(i+1) + " hour", dataValue: data.readingArray[i].temperature});
+                            for (var j=0;j<yearsMatchingUserQuery[i].monthArray.length;j++)
+                            {
+                                console.log("Traversing months:");
+                                var dailyTempDataObject = {bigArray: []};
+                                if (((yearsMatchingUserQuery[i].monthArray[j].month<timeBeginForUser.getMonth()+1)&&
+                                (yearsMatchingUserQuery[i].year==timeBeginForUser.getYear()))
+                                || ((yearsMatchingUserQuery[i].monthArray[j].month>timeEndForUser.getMonth()+1)&&
+                                (yearsMatchingUserQuery[i].year==timeEndForUser.getYear())))
+                                {
+                                    console.log("hit continue"+timeBeginForUser.getMonth());
+                                    continue;
+                                }
+                                for (var k=0;k<yearsMatchingUserQuery[i].monthArray[j].dayArray.length;k++)
+                                {
+                                    var hourlyTempDataObject = {bigArray: []};
+                                    if (((yearsMatchingUserQuery[i].monthArray[j].dayArray[k].date<timeBeginForUser.getDate())&&
+                                    (yearsMatchingUserQuery[i].monthArray[j]==timeBeginForUser.getMonth()+1))
+                                    || ((yearsMatchingUserQuery[i].monthArray[j].dayArray[k].date>timeEndForUser.getDate())&&
+                                    (yearsMatchingUserQuery[i].monthArray[j]==timeEndForUser.getMonth()+1)))
+                                    {
+                                        continue;
+                                    }
+                                    for (var l=0;l<yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray.length; l++)
+                                    {
+
+                                        var tempDataArray = [];
+                                        if (((yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l]<timeBeginForUser.getHours())&&
+                                        (yearsMatchingUserQuery[i].dayArray[j]==timeBeginForUser.getDate()))
+                                        || ((yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l]>timeEndForUser.getHours())&&
+                                        (yearsMatchingUserQuery[i].dayArray[j]==timeEndForUser.getDate())))
+                                        {
+                                            continue;
+                                        }
+                                        for (var m=0;m<yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l].readingArray.length; m++)
+                                        {
+                                            console.log("readings: "+yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l].readingArray[m]);
+                                            tempDataArray.push(yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l].readingArray[m].temperature);
+                                        }
+                                        labelToPass = yearsMatchingUserQuery[i].monthArray[j].dayArray[k].date+"-"+yearsMatchingUserQuery[i].monthArray[j].month
+                                        +"-"+(yearsMatchingUserQuery[i].year+1900)+", Hour "+yearsMatchingUserQuery[i].monthArray[j].dayArray[k].hourArray[l].hour;
+                                        checkMergeOrCalculate(tempDataArray,hourlyTempDataObject,frequencyFromUser,3,labelToPass);
+                                    }
+                                    labelToPass = yearsMatchingUserQuery[i].monthArray[j].dayArray[k].date+"-"+yearsMatchingUserQuery[i].monthArray[j].month
+                                        +"-"+(yearsMatchingUserQuery[i].year+1900);
+                                    checkMergeOrCalculate(hourlyTempDataObject.bigArray,dailyTempDataObject,frequencyFromUser,2,labelToPass);
+                                }
+                                labelToPass = yearsMatchingUserQuery[i].monthArray[j].month
+                                +"-"+(yearsMatchingUserQuery[i].year+1900);
+                                checkMergeOrCalculate(dailyTempDataObject.bigArray,monthlyTempDataObject,frequencyFromUser,1,labelToPass);
+                            }
+                            if (frequencyFromUser==0)
+                            {
+                                calculateMeanAndAppend(monthlyTempDataObject.bigArray);
+                                labelToPass = (yearsMatchingUserQuery[i].year+1900).toString();
+                                finalSensorLabelsArr.push(labelToPass);
+
+                            }
+                            // else
+                            // {
+                            //     console.log("Invalid value of frequency!");
+                            // }
+                        }
+                // console.log('printing obj' + JSON.stringify(obj));
+                        sendingData = {temperatures: finalSensorDataArr, labels: finalSensorLabelsArr};
+                        res.json(sendingData);    
+                        console.log("Final sensor data: "+JSON.stringify(finalSensorDataArr)); 
+                        console.log("Final labels array: "+JSON.stringify(finalSensorLabelsArr));             
+                    }
+                    
+                })
+    }
+    else if (timeBeginForUser.getMonth()<timeEndForUser.getMonth())
+    {
+        Month_Schema.find({ 
+            month: {$gte: timeBeginForUser.getMonth(), $lte: timeEndForUser.getMonth()},
+            year: timeBeginForUser.getYear(),
+            sensorId: sensorIdFromUser, dayArray: {$ne: []}
             },(err,yearsMatchingUserQuery) => {
                 if(err)
                 {
@@ -190,6 +285,7 @@ app.use('/graphtesting', (req, res) => {
                 }
                 
             })
+    }
             
       
 })
