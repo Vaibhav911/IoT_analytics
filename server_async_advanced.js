@@ -11,6 +11,17 @@ var {Day_Schema} = require('./IoT_Data_Schema.js');
 var {Hour_Schema} = require('./IoT_Data_Schema.js');
 var {Reading_Schema} = require('./IoT_Data_Schema.js');
 
+Hour_Schema.createIndexes({sensorId: 1}, (err, result) => {
+    if (err)
+    {
+        console.log('error while creating index');
+    }
+    else
+    {
+        console.log('index created succesfuly. Result: ' + result);
+    }
+});
+
 // var Campus_Schema = require('./IoT_Campus_Schema.js');
 
 app.use(cors());
@@ -37,7 +48,7 @@ var working_sensors = []//use this to find and clear data of faulty servers from
 
 start_server();                                                                 //****also clear last_stored_years, etc */
 
-app.use('/test', (req, res) => {
+app.use('/test1', (req, res) => {
     // const fs = require('fs');
     // fs.writeFile("./test.txt", "Hey there!", function(err) {
     // if(err) {
@@ -78,6 +89,58 @@ app.use('/test', (req, res) => {
 //     // var obj = {name: 'vaibhav', age: 18, city: 'kanpur'};
 //     deletecity(obj);
 //     console.log('obj after deleteion' + JSON.stringify(obj));
+})
+
+app.use('/test', (req, res) => {
+    // Hour_Schema.findOne({sensorId: 2}, (err, obj) => {
+    //     if (err)
+    //     {
+    //         console.log('error: ' + err);
+    //     }
+    //     else
+    //     {
+            
+    //         console.log('obj: ' + obj);
+    //         return;
+    //     }
+    // });
+    // console.log('at end of return');
+    var obj = {a: 1, b: 2, c: 3};
+    console.log('properties :' + Object.getOwnPropertyNames(obj));
+});
+
+app.use('/hello', (req, res) => {
+    // Use child_process.spawn method from  
+    // child_process module and assign it 
+    // to variable spawn 
+    
+    var spawn = require("child_process").spawn; 
+      
+    // Parameters passed in spawn - 
+    // 1. type_of_script 
+    // 2. list containing Path of the script 
+    //    and arguments for the script  
+      
+    // E.g : http://localhost:3000/name?firstname=Mike&lastname=Will 
+    // so, first name = Mike and last name = Will 
+    var process = spawn('python',["./hello.py", 
+                            req.query.firstname, 
+                            req.query.lastname] ); 
+    console.log('first name: ' + JSON.stringify(process.data));
+    // Takes stdout data from script which executed 
+    // with arguments and send this data to res object 
+    process.stdout.on('data', function(data) { 
+        res.send(data.toString()); 
+    } ) 
+});
+
+app.use('/getdata', (req, res) => {
+    // Hour_Schema.find({}, (err, hourlyData) => {
+    //     res.send('hourlydata: ' + hourlyData.toString());
+    // })
+    var atr = Object.getOwnPropertyNames(req.query);
+    console.log('atributes objs ' + atr[1]);
+    res.send('attributes' + typeof(Object.getOwnPropertyNames(req.query)));
 })
 
 app.use('/removesensor', (req, res) => {
@@ -573,6 +636,12 @@ async function combine_hourlyData_to_dailyData(index_prev_hour_in_cache, current
                       month: old_month,
                       year: old_year
                     },
+                    {
+                        sensorId: 0,
+                        date: 0,
+                        month: 0,
+                        year: 0
+                    },
         (err, hourlyDataArray) =>
         {
             if (err)
@@ -845,6 +914,19 @@ function log_error(err, message)
     console.log("Error logged");
     });
 
+}
+
+async function clear_temp_reading_storage()
+{
+    var hour = 0;
+    var date = 0;
+    var month = 0;
+    var year = 0;
+    var temp_reading_ind = 0;
+    for (temp_reading_ind=0;temp_reading_ind<temp_reading_storage.length;temp_reading_ind++)
+    {
+        // Year_Schema.findOne({sensorId: })
+    }
 }
 
 app.listen(3000, () => {
