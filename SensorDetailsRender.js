@@ -13,23 +13,14 @@ import MenuItem from '@material-ui/core/MenuItem';
 import FormHelperText from '@material-ui/core/FormHelperText';
 import FormControl from '@material-ui/core/FormControl';
 import Select from '@material-ui/core/Select';
+import Checkboxes  from './Checkbox'
+// import Selectlist from './Selectlist'
+import Selectlist from './Selectlist'
+var axios = require("axios");
 
 
 
-
-const names = [
-  'Oliver Hansen',
-  'Van Henry',
-  'April Tucker',
-  'Ralph Hubbard',
-  'Omar Alexander',
-  'Carlos Abbott',
-  'Miriam Wagner',
-  'Bradley Wilkerson',
-  'Virginia Andrews',
-  'Kelly Snyder',
-];
-
+var Campus=[];
 export class sensorDetailsRender extends Component {
 
   constructor(props) {
@@ -43,17 +34,43 @@ export class sensorDetailsRender extends Component {
     this.props.nextStep();
   };
 
+  loader = e => {
+    
+    var link = "http://localhost:5000/campusData";
+  var Campus_names=[]
 
-  // getStyles(name, personName, theme) {
-  //   return {
-  //     fontWeight:
-  //       personName.indexOf(name) === -1
-  //         ? theme.typography.fontWeightRegular
-  //         : theme.typography.fontWeightMedium,
-  //   };
-  // }
+
+  console.log(link)
+
+
+  console.log("hello")
+axios.get(link).then(res=>{
+
+console.log("the resss is "+ JSON.stringify(res));
+console.log(JSON.stringify(res.data.campusList));
+var t_no = res.data.campusList.length;
+console.log(t_no);
+console.log(res)
+for (var i=0;i<t_no;i++)
+    {
+      Campus_names.push(res.data.campusList[i]);
+      console.log(res.data.campusList[i]);
+      
+    } 
+
+    console.log("the campus name" + Campus_names)
+
+this.setState({Campus: Campus_names})
+
+});
+
+
+
+
+  };
+
   
-  handleChanger(event) {
+  handleChange(event) {
     this.setState({
       personName : event.target.value
 
@@ -61,50 +78,53 @@ export class sensorDetailsRender extends Component {
   }  
 
 
-  // handleChangerMultiple(event) {
-  //   const { options } = event.target;
-  //   const value = [];
-  //   for (let i = 0, l = options.length; i < l; i += 1) {
-  //     if (options[i].selected) {
-  //       value.push(options[i].value);
-  //     }
-  //   }
-  //   setPersonName(value);
-  // }
 
   render() {
+
+
+    var checks =[];
+    for(var i=0;i<5;i++)
+    {
+        checks.push(
+          <div>
+            <Checkboxes></Checkboxes>
+          </div>
+        )
+    }
     const { values, handleChange } = this.props;
+    console.log("The props are"+ this.state.Campus)
+
     return (
       <MuiThemeProvider>
         <React.Fragment>
 
-        <FormControl>
-        <InputLabel htmlFor="select-multiple">Name</InputLabel>
-        <Select
-          multiple
-          value={personName}
-          onChange={handleChanger}
-          input={<Input id="select-multiple" />}
-          // MenuProps={MenuProps}
-        >
-          {names.map(name => (
-            <MenuItem key={name} value={name} >
-              {name}
-            </MenuItem>
-          ))}
-        </Select>
-        </FormControl>
+      
+
 
           
-          <AppBar title="Enter User Details" />
-          <TextField
+          <AppBar title="Enter Campus Details" />
+
+
+          <RaisedButton
+            label="Load Data"
+            primary={true}
+            style={styles.button}
+            onClick={this.loader}
+          />
+
+          <Selectlist Campus = {this.state.Campus} 
+           />
+       
+          {/* <TextField
             hintText="Enter Your First Name"
             floatingLabelText="First Name"
             onChange={handleChange('firstName')}
             defaultValue={values.firstName}
           />
           <br />
-          <TextField
+         {/* // <Selectlist></Selectlist>
+         // <Selectlist></Selectlist> */}
+          {/* <TextField
             hintText="Enter Your Last Name"
             floatingLabelText="Last Name"
             onChange={handleChange('lastName')}
@@ -117,7 +137,7 @@ export class sensorDetailsRender extends Component {
             onChange={handleChange('email')}
             defaultValue={values.email}
           />
-          <br />
+          <br /> */}
           <RaisedButton
             label="Continue"
             primary={true}

@@ -45,6 +45,18 @@ export class SensorDetails extends Component {
     const values = {sensorId,campus,building,floor,zone, startDate,endDate,frequency };
 
     switch (step) {
+
+      // case 0:
+      //   return(
+      //     <StartPage
+      //     nextStep={this.nextStep}
+      //     handleChange={this.handleChange}
+      //     values={values}
+      //     />
+
+
+
+        
       case 1:
         return (
           <SensorDetailsRender
