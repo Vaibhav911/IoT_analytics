@@ -33,4 +33,4 @@ const Zone = mongoose.model("Zone_Schema",Zone_Schema);
 const Floor = mongoose.model("Floor_Schema",Month_Schema);
 const Building = mongoose.model("Building_Schema",Building_Schema);
 const Campus = mongoose.model("Campus_Schema",Campus_Schema);
-module.exports = {Zone_Schema: Zone, Floor_Schema: Floor, Building_Schema: Buidling, Campus_Schema: Campus};
+module.exports = {Sensor_Schema: Sensor, Zone_Schema: Zone, Floor_Schema: Floor, Building_Schema: Buidling, Campus_Schema: Campus};
