@@ -1,479 +1,305 @@
-import React,  {Component} from 'react';
+var express = require('express');
+var app = express();
+var cors = require('cors');
+var bodyParser = require('body-parser');
+var moment = require('moment');
+moment().format();
+var mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
+const JSONToCSV = require("json2csv").parse;
 
-//import {Calendar, CalendarList, Agenda} from 'react-native-calendars';
-
-import axios from 'axios';
-
-//import TimePicker from 'react-time-picker'
-//import TimePicker from 'rc-time-picker';
-
+var {Year_Schema} = require('./IoT_Data_Schema.js');
+var {Month_Schema} = require('./IoT_Data_Schema.js');
+var {Day_Schema} = require('./IoT_Data_Schema.js');
+var {Hour_Schema} = require('./IoT_Data_Schema.js');
+var {Reading_Schema} = require('./IoT_Data_Schema.js');
 
 
-class Form extends Component{
-    constructor(props){
-        super(props)
-        this.state={
-                    sensorId: '',
-                    frequency: 'Hourly',
-                    startHour:'00',
-                    endHour:'',
-                    startDay: '',
-                    endDay:'',
-                    startMonth:'00',
-                    endMonth:'00',
-                    startYear:'2018',
-                    endYear:'2018',
-                    stats:'Mean',
-                    
-        }
-    }
-handleSensorIdChange= event =>
-{
-this.setState(
+app.use(cors());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+
+app.use('/test1', (req, res) => {
+    var spawn = require('child_process').spawn,
+    py    = spawn('python', ['hello.py']),
+    data = {name: ['vaibhav', 'yadav']},
+    dataString = '';
+
+    py.stdout.on('data', function(data){
+        dataString += data.toString();
+    });
+    
+    py.stdout.on('end', function(){
+        console.log('name is ',dataString);
+    });
+
+    py.stdin.write(JSON.stringify(data));
+    py.stdin.end();
+})
+
+app.use('/test', (req, res) => {
+
+
+    var spawn = require('child_process').spawn;
+    py    = spawn('python', ['hello.py']);
+    data = {name: ['vaibhav', 'yadav']};
+    dataString = '';
+
+    py.stdout.on('data', function(data){
+        dataString += data.toString();
+    });
+    
+    py.stdout.on('end', function(){
+        console.log('data from python is ',dataString);
+    });
+
+    async function foo()
     {
-        sensorId:event.target.value
+        var data = await get_sensor_data(1, new Date(2019, 05, 13), new Date(2019, 05, 17), 'monthly');
+        py.stdin.write(JSON.stringify(data));
+        py.stdin.end();
     }
-)
-}
-handleFrequencyChange= event =>
+    foo();
+
+
+})
+
+
+app.use('/hello', (req, res) => {
+    async function wait()
+    {
+    // Use child_process.spawn method from  
+    // child_process module and assign it 
+    // to variable spawn 
+    
+    var spawn = require("child_process").spawn; 
+      
+    // Parameters passed in spawn - 
+    // 1. type_of_script 
+    // 2. list containing Path of the script 
+    //    and arguments for the script  
+      
+    // E.g : http://localhost:3000/name?firstname=Mike&lastname=Will 
+    // so, first name = Mike and last name = Will 
+    // var data = await get_sensor_data(1, new Date(2019, 05, 13), new Date(2019, 05, 17), 'hourly');
+    var process = spawn('python',["./hello.py", 
+    JSON.stringify({name:'vaibhav'}), 
+    'yadv'] ); 
+
+    // Takes stdout data from script which executed 
+    // with arguments and send this data to res object 
+    process.stdout.on('data', function(data) { 
+    res.send(data.toString()); 
+    } )  
+
+    }
+    wait();
+});
+
+app.use('/getdata', (req, res) => {
+    
+    async function get_data()
+    {
+        res.status(200).send('data is ' + await get_sensor_data(1, new Date(2019, 05, 13), new Date(2019, 05, 17), 'monthly'));
+    }
+    get_data();
+    // get_sensor_data(1, new Date(2019, 05, 13), new Date(2019, 05, 17));
+});
+
+async function get_sensor_data(sensorId, start_time, end_time, frequency)
 {
-    this.setState(
-        {
-            frequency:event.target.value
-        }
-    )
-}
-handleSubmit = event =>{
-    event.preventDefault()
-    // console.log("Senshdhfh"+ this.state.sensorId)
-    // console.log("Submitted" +JSON.stringify(this.state))
+    // var start_time_moment = moment(start_time);
+    // var end_time_moment = moment(end_time);
+    console.log('inside get-sensor-data function');
+    var annualDataArray = [];
+    var monthlyDataArray = [];
+    var dailyDataArray = [];
+    var hourlyDataArray = [];
+    await Year_Schema.find({sensorId: sensorId,
+                      year: {$gte: start_time.getYear(), $lte: end_time.getYear()}}, 
+                      (err, annualDatas) => {
+                            if (err)
+                            {
+                                console.log('error in fetching annual data from mongodb');
+                                console.log('error is ' + err);
+                            }
+                            else
+                            {
+                                // console.log('annual data received ' + annualDatas);
+                                for (var i=0;i<annualDatas.length;i++)
+                                {
+                                    annualDataArray.push(annualDatas[i]);
+                                }
+                            }
+                        });
+    await Month_Schema.find({sensorId: sensorId,
+                        month: {$gte: start_time.getMonth(), $lte: end_time.getMonth()},
+                        year: {$gte: start_time.getYear(), $lte: end_time.getYear()}}, 
+                        (err, monthlyDatas) =>{
+                            if (err)
+                            {
+                                console.log('error in fetching monthly data from mongodb');
+                                console.log('error is: ' + err);
+                            }
+                            else
+                            {
+                                // console.log('monthly data received ' + monthlyDatas);
+                                for (var i=0;i<monthlyDatas.length;i++)
+                                {
+                                    monthlyDataArray.push(monthlyDatas[i]);
+                                }
+                            }
+                        });
+    await Day_Schema.find({sensorId: sensorId,
+                    date: {$gte: start_time.getDate(), $lte: end_time.getDate()},
+                     month: {$gte: start_time.getMonth(), $lte: end_time.getMonth()},
+                     year: {$gte: start_time.getYear(), $lte: end_time.getYear()}}, 
+                     (err, dailyDatas) => {
+                         if (err)
+                         {
+                             console.log('error while fetching daily data from monogbd');
+                             console.log('error is: ' + err);
+                         }
+                         else
+                         {
+                            //  console.log('daily data received ' + dailyDatas)
+                             for (var i=0;i<dailyDatas.length;i++)
+                             {
+                                dailyDataArray.push(dailyDatas[i]);
+                             }
+                         }
+                     });
+    await Hour_Schema.find({sensorId: sensorId,
+                      hour: {$gte: start_time.getHours(), $lte: end_time.getHours()},
+                      date: {$gte: start_time.getDate(), $lte: end_time.getDate()},
+                      month: {$gte: start_time.getMonth(), $lte: end_time.getMonth()},
+                      year: {$gte: start_time.getYear(), $lte: end_time.getYear()}},
+                      (err, hourlyDatas) => {
+                          if (err)
+                          {
+                              console.log('error while fetching hourly data from mongodb');
+                              console.log('error is: ' + err);
+                          }
+                          else
+                          {
+                            //   console.log('hourly data received'  + hourlyDatas);
+                              for (var i=0;i<hourlyDatas.length;i++)
+                              {
+                                  hourlyDataArray.push(hourlyDatas[i]);
+                              }
+                          }
+                      });
 
-    // this.setState(
+    return [frequency, annualDataArray, monthlyDataArray, dailyDataArray, hourlyDataArray];
+    // if (frequency == 'annual')
+    // {
+    //     var annualData  = [];
+    //     var annualLabels = [];
+    //     for (var y=0;y<annualDataArray.length;y++)
     //     {
-    //                 sensorId: this.state.sensorId,
-    //                 frequency: this.state.frequency,
-    //                 startHour:this.state.startHour,
-    //                 endHour:this.state.endHour,
-    //                 startDay: this.state.startDay,
-    //                 endDay:this.state.endDay,
-    //                 startMonth:this.state.startMonth,
-    //                 endMonth:this.state.endMonth,
-    //                 startYear:this.state.startYear,
-    //                 endYear:this.state.endYear,
-    //                 stats:this.state.stats
+    //         let index = annualDataArray[y].year - start_time.getYear()
+    //         for (var m=0;m<annualDataArray[y].monthArray.length;m++)
+    //         {
+    //             for (var d=0;d<annualDataArray[y].monthArray[m].dayArray.length;d++)
+    //             {
+    //                 for (var h=0;h<annualDataArray[y].monthArray[m].dayArray[d].hourArray.length;h++)
+    //                 {
+    //                     for (var r=0;r<annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].length;r++)
+    //                     {
+    //                         annualData[index].push(annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].readingArray[r]);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         annualLabels[annualDataArray[y].year - start_time.getYear()].push(annualDataArray[year].year + " year");
     //     }
-    // )
-    // data={
-    //     sensorId,
-    //                 frequency,
-    //                 startHour,
-    //                 endHour,
-    //                 startDay: this.state.startDay,
-    //                 endDay:this.state.endDay,
-    //                 startMonth:this.state.startMonth,
-    //                 endMonth:this.state.endMonth,
-    //                 startYear:this.state.startYear,
-    //                 endYear:this.state.endYear,
-    //                 stats:this.state.stats
+    //     for (var m=0;m<)
 
+    //     //push monthly, daily, hourlydata also
+    // }
+    // else if(frequency == 'monthly')
+    // {
+    //     var monthlyData  = [];
+    //     var monthlyLabels = [];
+    //     for (var y=0;y<annualDataArray.length;y++)
+    //     {
+    //         for (var m=0;m<annualDataArray[y].monthArray.length;m++)
+    //         {
+    //             let index = moment({month: annualDataArray[y].monthlyData[m].month, year: annualDataArray[y]}).diff(moment(start_time, 'months'));
+    //             for (var d=0;d<annualDataArray[y].monthArray[m].dayArray.length;d++)
+    //             {
+    //                 for (var h=0;h<annualDataArray[y].monthArray[m].dayArray[d].hourArray.length;h++)
+    //                 {
+    //                     for (var r=0;r<annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].length;r++)
+    //                     {
+    //                         monthlyData[index].push(annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].readingArray[r]);
+    //                     }
+    //                 }
+    //             }
+    //             monthlyLabels[index].push(annualDataArray[y].monthArray[m] + " month, " + annualDataArray[year].year + " year");
+    //         }
+            
+    //     }
+    // }
+    // else if(frequency == 'daily')
+    // {
+    //     var dailyData  = [];
+    //     var dailyLabels = [];
+    //     for (var y=0;y<annualDataArray.length;y++)
+    //     {
+    //         for (var m=0;m<annualDataArray[y].monthArray.length;m++)
+    //         {
+    //             for (var d=0;d<annualDataArray[y].monthArray[m].dayArray.length;d++)
+    //             {
+    //                 var index  = moment({day: annualDataArray[y].monthArray[m].dayArray[d],
+    //                                     month: annualDataArray[y].monthlyData[m].month, 
+    //                                     year: annualDataArray[y]}).diff(moment(start_time, 'days'));
+    //                 for (var h=0;h<annualDataArray[y].monthArray[m].dayArray[d].hourArray.length;h++)
+    //                 {
+    //                     for (var r=0;r<annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].length;r++)
+    //                     {
+    //                         dailyData[index].push(annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].readingArray[r]);
+    //                     }
+    //                 }
+    //                 dailyLabels[index].push(annualDataArray[y].monthArray[m].dayArray[d] + " day, " + annualDataArray[y].monthArray[m] + " month, " + annualDataArray[year].year + " year");
+    //             }
+    //         }
+    //     }
+    // }
+    // else if(frequency == 'hourly')
+    // {
+    //     var hourlyData  = [];
+    //     var hourlyLabels = [];
+    //     for (var y=0;y<annualDataArray.length;y++)
+    //     {
+    //         for (var m=0;m<annualDataArray[y].monthArray.length;m++)
+    //         {
+    //             for (var d=0;d<annualDataArray[y].monthArray[m].dayArray.length;d++)
+    //             {
+    //                 for (var h=0;h<annualDataArray[y].monthArray[m].dayArray[d].hourArray.length;h++)
+    //                 {
+    //                     var index  = moment({
+    //                         hour: annualDataArray[y].monthArray[m].dayArray[d].hourArray[h],
+    //                         day: annualDataArray[y].monthArray[m].dayArray[d],
+    //                         month: annualDataArray[y].monthlyData[m].month, 
+    //                         year: annualDataArray[y]}).diff(moment(start_time, 'hours'));
+    //                     for (var r=0;r<annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].length;r++)
+    //                     {
+    //                         dailyData[index].push(annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].readingArray[r]);
+    //                     }
+    //                     dailyLabels[index].push(annualDataArray[y].monthArray[m].dayArray[d].hourArray[h].hour + " hour, " + annualDataArray[y].monthArray[m].dayArray[d].date + " day, " + annualDataArray[y].monthArray[m].month + " month, " + annualDataArray[year].year + " year");
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     res.send("can't find data for given frequency");
     // }
     
-    var link = "http://localhost:5000/graphtesting?"
-    + "sensorId=" + this.state.sensorId
-    + "&frequency-=" + this.state.frequency
-    + "&startHour="+ this.state.startHour
-    +"&endHour="+this.state.endHour
-    +"&startDay="+this.state.startDay
-    +"&endDay="+this.state.endDay
-    +"&startMonth="+this.state.startMonth
-    +"&endMonth="+this.state.endMonth
-    +"&startYear="+this.state.startYear
-    +"&endYear="+this.state.endYear
-    +"&stats="+this.state.stats
-
-    //console.log(link)
-
-axios.post(link).then(response=>{
-// console.log("this is the response:" +response)
 }
 
-)
-
-
-}
-handleStartHourChange = event =>{
-    this.setState(
-        {
-            startHour:event.target.value
-        }
-    )
-
-}
-handleEndHourChange = event =>{
-    this.setState(
-        {
-            endHour:event.target.value
-        }
-    )
-}
-
-handleStartDayChange = event =>{
-    this.setState(
-        {
-            startDay:event.target.value
-        }
-    )
-}
-
-handleEndDayChange = event =>{
-    this.setState(
-        {
-            endDay:event.target.value
-        }
-    )
-}
-
-
-handleStartMonthChange =event =>{
-    this.setState(
-        {
-                startMonth:event.target.value
-        }
-    )
-}
-
-handleEndMonthChange =event =>{
-    this.setState(
-        {
-                endMonth:event.target.value
-        }
-    )
-}
-
-
-
-
-handleStartYearChange =event =>{
-    this.setState(
-        {
-            startYear:event.target.value
-        }
-    )
-}
-
-handleEndYearChange =event =>{
-    this.setState(
-        {
-            endYear:event.target.value
-        }
-    )
-}
-
-handleStatsChange = event => this.setState({stats:event.target.value })
-// handleCalenderStart = date => {
-//     console.log('handleCalendarStart called');
-//     this.setState({ date })
-//     console.log("This is the strtdate:" + date)
-// }
-// handleCalenderEnd = event => this.setState({ endDate:event.target.value })
- 
-
-
-
-// howStartDateTimePicker = () =>
-//   this.setState({ startDateTimePickerVisible: true });
-
-// showEndDateTimePicker = () => this.setState({ endDateTimePickerVisible: true });
-
-// hideStartDateTimePicker = () =>
-//   this.setState({ startDateTimePickerVisible: false });
-
-// hideEndDateTimePicker = () =>
-//   this.setState({ endDateTimePickerVisible: false });
-
-// handleStartDatePicked = date => {
-//   console.log("A date has been picked: ", date);
-//   this.hideStartDateTimePicker();
-// };
-
-// handleEndDatePicked = date => {
-//   console.log("A date has been picked: ", date);
-//   this.hideEndDateTimePicker();
-// };
-
-
-
-// <div id='layout'>
-            //     <div className='clientInput'></div>
-    render(){   
-        // console.log('form obkject created'); 
-        // console.log(this.state);
-        return(    
-            
-            // </div>
-            <div>
-            <form onSubmit={this.handleSubmit}>
-                <div>
-                    <label>Sensor ID</label>
-                    <input type="text" value={this.state.sensorId} onChange={this.handleSensorIdChange}/>
-                </div>
-                <div>
-                    <label>
-                        Frequency of data
-                    </label>
-                    <select value={this.state.frequency} onChange={this.handleFrequencyChange}>
-                        <option value="yearly">Yearly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="daily">Daily</option>
-                        <option value="hourly">Hourly</option>
- 
-                    </select>
-                </div>
-                
-                {/* <Button title="Show DatePicker" onPress={this.showDateTimePicker} />
-                                    <DateTimePicker
-                            isVisible={this.state.howStartDateTimePicker}
-                            onConfirm={this.handleStartDatePicked }
-                            onCancel={this.hideStartDateTimePicker }
-                            /> */}
-
-
-                <div>
-                    <label>
-                        Start Hour
-                    </label>
-                    <select value={this.state.startHour} onChange={this.handleStartHourChange}>
-                    <option value="00">00</option> 
-                    <option value="01">01</option> 
-                    <option value="02">02</option> 
-                    <option value="03">03</option> 
-                    <option value="04">04</option> 
-                    <option value="05">05</option> 
-                    <option value="06">06</option> 
-                    <option value="07">07</option> 
-                    <option value="08">08</option> 
-                    <option value="09">19</option> 
-                    <option value="10">10</option> 
-                    <option value="11">11</option> 
-                    <option value="12">12</option> 
-                    <option value="13">13</option> 
-                    <option value="14">14</option> 
-                    <option value="15">15</option> 
-                    <option value="16">16</option> 
-                    <option value="17">17</option> 
-                    <option value="18">18</option> 
-                    <option value="19">19</option> 
-                    <option value="20">20</option> 
-                    <option value="21">21</option> 
-                    <option value="22">22</option> 
-                    <option value="23">23</option> 
-
-
-                       
- 
-                    </select>
-                </div>
-
-
-                <div>
-                    <label>
-                        End Hour
-                    </label>
-                    <select value={this.state.endHour} onChange={this.handleEndHourChange}>
-                    <option value="00">00</option> 
-                    <option value="01">01</option> 
-                    <option value="02">02</option> 
-                    <option value="03">03</option> 
-                    <option value="04">04</option> 
-                    <option value="05">05</option> 
-                    <option value="06">06</option> 
-                    <option value="07">07</option> 
-                    <option value="08">08</option> 
-                    <option value="09">19</option> 
-                    <option value="10">10</option> 
-                    <option value="11">11</option> 
-                    <option value="12">12</option> 
-                    <option value="13">13</option> 
-                    <option value="14">14</option> 
-                    <option value="15">15</option> 
-                    <option value="16">16</option> 
-                    <option value="17">17</option> 
-                    <option value="18">18</option> 
-                    <option value="19">19</option> 
-                    <option value="20">20</option> 
-                    <option value="21">21</option> 
-                    <option value="22">22</option> 
-                    <option value="23">23</option> 
-
-
-                       
- 
-                    </select>
-                </div>
-                <div>
-                    <label>
-                        Start Day
-                    </label>
-                    
-                    <input type="text" value={this.state.startDay} onChange={this.handleStartDayChange}/>
-
-
-                       
- 
-                    
-                </div>
-
-                <div>
-                    <label>
-                        End Day
-                    </label>
-                    
-                    <input type="text" value={this.state.endDay} onChange={this.handleEndDayChange}/>
-
-
-                       
- 
-                    
-                </div>
-
-
-                <div>
-                    <label>
-                        Start Month
-                    </label>
-                    <select value={this.state.startMonth} onChange={this.handleStartMonthChange}>
-                    
-                    <option value="00">Jan</option> 
-                    <option value="01">Feb</option> 
-                    <option value="02">Mar</option> 
-                    <option value="03">Apr</option> 
-                    <option value="04">May</option> 
-                    <option value="05">June</option> 
-                    <option value="06">July</option> 
-                    <option value="07">August</option> 
-                    <option value="08">Sept</option> 
-                    <option value="09">Oct</option> 
-                    <option value="10">Nov</option> 
-                    <option value="11">Dec</option> 
-                   
-
-
-                       
- 
-                    </select>
-                </div>
-
-
-                <div>
-                    <label>
-                        End Month
-                    </label>
-                    <select value={this.state.endMonth} onChange={this.handleEndMonthChange}>
-                    
-                    <option value="01">Jan</option> 
-                    <option value="02">Feb</option> 
-                    <option value="03">Mar</option> 
-                    <option value="04">Apr</option> 
-                    <option value="05">May</option> 
-                    <option value="06">June</option> 
-                    <option value="07">July</option> 
-                    <option value="08">August</option> 
-                    <option value="09">Sept</option> 
-                    <option value="10">Oct</option> 
-                    <option value="11">Nov</option> 
-                    <option value="12">Dec</option> 
-                   
-
-
-                       
- 
-                    </select>
-                </div>
-                <div>
-                    <label>Start Year</label>
-                    <input type="text" value={this.state.startYear} onChange={this.handleStartYearChange}/>
-                </div>
-                <div><label>End Year</label>
-                    <input type="text" value={this.state.endYear} onChange={this.handleEndYearChange}/>
-                    </div>
-
-
-
-
-
-                
-                {/* <div>
-                    <label>
-                        Start Hour
-                    </label>
-                                        <TimePicker
-                            onChange={this.handleStartHourChange}
-                            value={this.state.startHour}
-                            />
-                    
-                </div> */}
-
-                {/* <div>
-                    <label>
-                        End Hour
-                    </label>
-
-                           <TimePicker
-                            onChange={this.handleEndHourChange}
-                            value={this.state.endHour}
-                            />
-                    
-                </div>
-                <div style={{float :'left' }}>
-                    <label>Start Date</label>
-                            <Calendar
-                            value={this.state.date}
-                            onChange={this.handleCalenderStart}
-                    
-                    />
-                </div> */}
-                {/* <div style={{float :'left' }}>
-                    <label>End Date</label>
-                            <Calendar
-                    onChange={this.handleCalenderEnd}
-                    value={this.state.endDate}
-                    />
-                </div> */}
-                <div>
-                            <label>
-
-
-
-
-                            </label>
-                </div>
-
-                <div style={{float :'left' }}>
-                    <label>
-                        Data Statistic 
-                    </label>
-                    <select value={this.state.stats} onChange={this.handleStatsChange}>
-                        <option value="Mean">Mean</option>
-                        <option value="Median">Median</option>
-                        <option value="Mode">Mode</option>
-                        
- 
-                    </select>
-                </div>
-
-
-
-                <button type="submit" color='#841584'>Submit</button>
-            </form>
-            </div>
-            
-        )
-    }
-
-
-
-}
-
-
-
-export default Form ;
+app.listen(4000, () => {
+    console.log('listening at 4000');
+})
