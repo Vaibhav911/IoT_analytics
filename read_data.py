@@ -16,7 +16,7 @@ def main():
 #    print("hi from python")
 #    #get our data as an array from read_in()
     data = read_in()
-    print('reached hre')
+#    print('reached hre')
     
     frequency = data[0]
     attributes = data[1]
@@ -44,7 +44,19 @@ def main():
                          monthly_data[0], daily_data, hourly_data)
     
     finaldata= pd.DataFrame(finaldata)
-    print('mean is ', finaldata.std(axis=1))
+    
+    (values, labels) = organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
+                             annual_data, monthly_data, daily_data, hourly_data)
+    
+
+#    print('lne of values', len(values[0]))
+#    print('len of labels', (labels))
+#    print('bar graph data', type(prepare_bar_graph(values)))
+#    print('data to nodejs', {'labels': labels, 'values': prepare_bar_graph(values)  })
+    print(json.dumps({'labels': labels, 'values': prepare_bar_graph(values)}))
+
+    
+#    print('mean is ', finaldata.std(axis=1))
 
 #    print('finla data', finaldata)
 #    print(json.dumps(dict(finaldata.mask(finaldata.isna(), 0))))
@@ -317,6 +329,8 @@ def get_sensor_index(sensorId, annual_data, monthly_data, daily_data, hourly_dat
     monthly_data_index = -1
     daily_data_index = -1
     hourly_data_index = -1
+    
+#    print('in function get_sensor_index, vlaue of sensorId', sensorId)
         
     for  sensor_year_data in range(len(annual_data)):
         if str(annual_data[sensor_year_data][0]['sensorId']) == sensorId:
@@ -339,13 +353,88 @@ def get_sensor_index(sensorId, annual_data, monthly_data, daily_data, hourly_dat
             break;
     return (annual_data_index, monthly_data_index, daily_data_index, hourly_data_index)
 
-def sensor_stats_max(sensorIsensorId, annual_data, monthly_data, daily_data, hourly_data):
-    (annual_data_index, monthly_data_index, daily_data_index, hourly_data_index) = get_sensor_index(sensorIds[0],
-                                                                                                    annual_data,
-                                                                                                    monthly_data,
-                                                                                                    daily_data,
-                                                                                                    hourly_data)
 
+def organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
+                             annual_data, monthly_data, daily_data, hourly_data):
+    
+    values = []
+    labels = []
+    labels_set = False
+    
+    for attribute in attributes:
+        attribute_values_list = [];
+        for sensorId in sensorIds:
+            (annual_data_index, monthly_data_index, daily_data_index, hourly_data_index) = get_sensor_index(sensorId, 
+                                                                                                            annual_data, 
+                                                                                                            monthly_data, 
+                                                                                                            daily_data, 
+                                                                                                            hourly_data)
+            sensor_annual_data = []
+            sensor_monthly_data = []
+            sensor_daily_data = []
+            sensor_hourly_data = []
+            
+            if (annual_data_index != -1):
+                sensor_annual_data = annual_data[annual_data_index]          
+            if (monthly_data_index != -1):
+                sensor_monthly_data = monthly_data[monthly_data_index]
+            if (daily_data_index != -1):
+                sensor_daily_data = daily_data[daily_data_index]
+            if (hourly_data_index != -1):
+                sensor_hourly_data = hourly_data[hourly_data_index]
+
+            (finaldata, finallabels) = organize_sensor_data(attribute, frequency, 
+                                                            start_time, end_time, 
+                                                            sensor_annual_data, 
+                                                            sensor_monthly_data, 
+                                                            sensor_daily_data,
+                                                            sensor_hourly_data)
+            attribute_values_list.append(finaldata)
+            if (labels_set == False):
+                labels = finallabels
+                labels_set = True
+        
+        values.append(attribute_values_list)
+    
+    return (values, labels)
+            
+            
+def prepare_bar_graph(values):
+#    print('in func preapare_bar_graph')
+    attribute_data = [];
+    for attribute in values:
+        stats = {'mean': [], 'median': [], 'max': [], 'min': [], 'variance': [], 'stddev': []}
+        for sensor_data in attribute:
+#            print('sensor data len', len(sensor_data))
+#            print('sensor data type', type(sensor_data))
+            stats['mean'].append(sensor_data)
+        stats['mean'] = np.array(stats['mean'])
+#        print('dim are', np.stack(stats['mean'], axis=1).shape)
+        data = prepare_data(np.stack(stats['mean'], axis=1))
+#        print('data is', pd.DataFrame(data).var(axis=1))   ******very imp
+        stats['mean'] = pd.DataFrame(data).mean(axis=1)
+        stats['median'] = pd.DataFrame(data).median(axis=1)
+        stats['max'] = pd.DataFrame(data).max(axis=1)
+        stats['min'] = pd.DataFrame(data).min(axis=1)
+        stats['variance'] = pd.DataFrame(data).var(axis=1)
+        stats['stddev'] = pd.DataFrame(data).std(axis=1)
+#        print('stats is', stats)
+#        print('statsi', stats)
+        attribute_data.append(stats)
+#        print('\n\n\nattribute arrat;,', attribute_data)
+#        print('data is', prepare_data(np.stack(stats['mean'], axis=1)))
+#        print('mean is', prepare_data(np.stack(stats['mean'], axis=1)).mean())
+#    print('\n\n\n\n\n\len nattribute data', (attribute_data))
+    return attribute_data
+#    print('attribute data len', (attribute_data))
+#    print('attribute data type [0]', type(attribute_data[0]))
+
+def prepare_data(array):
+    stats = []
+    for row in array:
+        stats.append(pd.DataFrame(row.tolist()).values.flatten())
+    return stats
+        
 #start process
 if __name__ == '__main__':
     main()
