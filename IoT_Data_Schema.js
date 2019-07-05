@@ -20,7 +20,7 @@ var Hour_Schema = new Schema({
     date : { type: Number, required: true},
     month : { type: Number, required: true},
     year: {type: Number, required: true},
-    readingArray : [Reading_Schema]
+    readingArray : []
 });
 
 var Day_Schema = new Schema({
@@ -28,20 +28,20 @@ var Day_Schema = new Schema({
     date : { type: Number, required: true},
     month : { type: Number, required: true},
     year: {type: Number, required: true},
-    hourArray : [Hour_Schema]
+    hourArray : []
 });
 
 var Month_Schema = new Schema({
     sensorId : { type: Number, required: true},
     month : { type: Number, required: true},
     year: {type: Number, required: true},
-    dayArray : [Day_Schema]
+    dayArray : []
 });
 
 var Year_Schema = new Schema({
     sensorId : { type: Number, required: true},
     year: { type: Number, required: true},
-    monthArray : [Month_Schema]
+    monthArray : []
 });
 
 
