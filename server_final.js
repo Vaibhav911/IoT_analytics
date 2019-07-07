@@ -92,38 +92,34 @@ app.use('/test1', (req, res) => {
 })
 
 app.use('/test', (req, res) => {
-    const delay = (duration) =>
-    new Promise(resolve => setTimeout(resolve, duration))
-    
-    async function wait1()
-    {
-        console.log('before wait1');
-        await delay(3000)
-        console.log('after wait1')
-    }
-    async function wait2()
-    {
-        console.log('before wait2');
-        await delay(3000)
-        console.log('after wait2')
-    }
-    async function foo()
-    {
-        try
+    var obj = new Reading_Schema({
+        parkingOccupancy: true,
+        humanOccupancy: false 
+    })
+    obj.save((err) => {
+        if (err)
         {
-            await wait1();
-            if (true)
-            {
-                await wait2();
-            }
+            console.log('erro is ' + JSON.stringify(err))
         }
-        catch(err)
+        else
         {
-            console.log('this is the error: ' + err);
+            console.log('obj saved succesfuly')
         }
-    }
-    foo();
+    }, {strict: false})
 });
+
+app.use('/test3', (req, res) => {
+    Reading_Schema.findOne({sensorId: 100}, (err, obj) => {
+        if (err)
+        {
+            console.log('error: ' + JSON.stringify(err))
+        }
+        else
+        {
+            console.log('obj is ' + JSON.stringify(obj))
+        }
+    })
+})
 
 app.use('/hello', (req, res) => {
     // Use child_process.spawn method from  
@@ -186,12 +182,11 @@ app.use('/showcache', (req, res) => {
 
 app.use('/storereading', (req, res) => {
     sensorId = req.query.sensorId;
-    temperature = req.query.temperature;
-    humidity = req.query.humidity;
-    luminosity = req.query.luminosity;
+    parkingOccupancy = req.query.parkingOccupancy == 1;
+    humanOccupancy = req.query.humanOccupancy == 1;
     timeStamp = req.query.timeStamp;
     i = req.query.i;
-    var reading = new Reading_Schema({sensorId: sensorId, temperature: temperature, humidity: humidity, luminosity: luminosity, timeStamp: timeStamp});
+    var reading = new Reading_Schema({sensorId: sensorId, humanOccupancy: humanOccupancy, parkingOccupancy: parkingOccupancy, timeStamp: timeStamp});
     async function storefinally()
     {
         await storereading(reading);
@@ -991,7 +986,7 @@ async function clear_temp_reading_storage()
     }
 }
 
-app.listen(3000, () => {
-    console.log('listening at 3000');
+app.listen(2000, () => {
+    console.log('listening at 2000');
     console.log('Starting server. Please wait...');
 })

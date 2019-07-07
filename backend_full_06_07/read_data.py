@@ -18,7 +18,7 @@ def main():
     data = read_in()
     
     frequency = data[0]
-    attributes = data[1]
+    attribute_set = data[1]
     sensor_sets = data[2];
     start_time = data[3];
     end_time = data[4]
@@ -27,9 +27,9 @@ def main():
     daily_data = data[7]
     hourly_data = data[8]
     
-#    print('reached here')
+#    print('atribute setset is', attribute_set)
 
-
+#    print('sensor sets', sensor_sets)
     sensorIds = [];
     for sensor_set in sensor_sets:
         for sensor in sensor_set:
@@ -49,44 +49,76 @@ def main():
 #    
 #    (values, labels) = organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
 #                             annual_data, monthly_data, daily_data, hourly_data)
+    final_data = []
+    sensor_set_index = 0
     
+    for attribute_data in attribute_set:
+        attributes = attribute_data['attributesArray']
+        data_type = attribute_data['dataType']
+#        print("data type is", data_type)
+#        print('attributes are', attributes)
+        
+        if data_type == 'quantitative':
+#            print('in quantitative')
+            final_bar_graph_data = []
+            final_histogram_data = []
+            sensor_set = sensor_sets[sensor_set_index]
+            sensorIds = []
+            for sensor in sensor_set:
+                sensorIds.append(sensor)
+                
+#            print('receed line 60')
+            (values, labels) = organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
+                                 annual_data, monthly_data, daily_data, hourly_data)
+#            print('reched line 72')
+            data = prepare_bar_graph_quantitative(values)
+            final_bar_graph_data.append({'labels': labels, 'values': data})
+            
+            (labels, counts) = prepare_histogram_quantitative(values)
+            final_histogram_data.append({'labels': labels, 'counts': counts })
+            
+            (attribute_data, sensorIds) = prepare_heat_map_quantitative(values, sensorIds)           
+            final_heat_map_data = {'data': attribute_data, 'sensorIds': sensorIds}
+            
+            sensor_set_index += 1
     
+        
+#            print(json.dumps({'bar_data': final_bar_graph_data, 'heat_map_data': final_heat_map_data, 'attributes': attributes,
+#                          'histogram_data': final_histogram_data}))
+            final_data.append({'data_type': 'quantitative', 'bar_data': final_bar_graph_data, 'heat_map_data': final_heat_map_data, 'attributes': attributes,
+                          'histogram_data': final_histogram_data})
     
-    
-    final_bar_graph_data = []
+        if data_type == 'qualitative':
+#            print('data type is qualitative')
+#            print('daily data', daily_data)
+#            print('hourly data', hourly_data)
+#            print("monthly data", monthly_data)
+#            print('annual data', annual_data)
+#            print('in 91', sensor_sets[sensor_set_index])
+            sensor_set = sensor_sets[sensor_set_index]
+            sensorIds = []
+            for sensor in sensor_set:
+                sensorIds.append(sensor)
+                    
+#            print('attributes', attributes)
+#            print('sensorIds', sensorIds)
+            (values, labels) = organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
+                                 annual_data, monthly_data, daily_data, hourly_data)
+#            print('reached line 102')
+            sensor_set_index += 1
+#            print('values are', len(values[0][0]))
+#            print('labels are', labels)
+            bar_graph_attribute_data, qualitative_label_enumeration = prepare_bar_graph_qualitative(values)
+            heat_map_attribute_data = prepare_heat_map_qualitative(values, sensorIds, qualitative_label_enumeration)
+            histogram_attribute_data = prepare_histogram_qualitative(bar_graph_attribute_data)
 
-    final_histogram_data = []
-    for sensor_set in sensor_sets:
-        sensorIds = []
-        for sensor in sensor_set:
-            sensorIds.append(sensor)
-        (values, labels) = organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_time, 
-                             annual_data, monthly_data, daily_data, hourly_data)
-        
-        
-        data = prepare_bar_graph(values)
-        final_bar_graph_data.append({'labels': labels, 'values': data})
-        
-        
-        (labels, counts) = prepare_histogram(values)
-        final_histogram_data.append({'labels': labels, 'counts': counts })
-        
-    (attribute_data, sensorIds) = prepare_heat_map(values, sensorIds)
-
-        
-    final_heat_map_data = {'data': attribute_data, 'sensorIds': sensorIds}
-        
-#        print('in hrere'*10)
-        
-#    print('bar graph', final_bar_graph_data)
-#    print('heat map', final_heat_map_data)
-#    print('abab'*5)
-#    print('hist', final_histogram_data)
-#    
-#    print('\n'*4)
-    
-    print(json.dumps({'bar_data': final_bar_graph_data, 'heat_map_data': final_heat_map_data, 'attributes': attributes,
-                      'histogram_data': final_histogram_data}))
+#            print(json.dumps({'data_type': 'qualitative' ,'bar_data': bar_graph_attribute_data, 'heat_map_data': heat_map_attribute_data, 'attributes': attributes,
+#                              'histogram_data': histogram_attribute_data, 'sensorIds': sensorIds}))
+            final_data.append({'data_type': 'qualitative' ,'bar_data': bar_graph_attribute_data, 'heat_map_data': heat_map_attribute_data, 'attributes': attributes,
+                              'histogram_data': histogram_attribute_data, 'sensorIds': sensorIds})
+#    print('final data', final_data)
+    print(json.dumps(final_data))
+            
         
         
         
@@ -130,6 +162,7 @@ def main():
 def organize_sensor_data(attribute, frequency, start_time, end_time, sensor_annual_data, 
                          sensor_monthly_data, sensor_daily_data, sensor_hourly_data):
      labels = create_labels(frequency, start_time, end_time)
+
      if frequency =='daily':
         start_time = parser.parse(start_time[0:-1])
         end_time = parser.parse(end_time[0:-1])
@@ -141,14 +174,14 @@ def organize_sensor_data(attribute, frequency, start_time, end_time, sensor_annu
         no_days= delta.days + 1;
         finaldata = [[] for i in range (no_days)]
         finallabels = [None for i in range(no_days)]
-        for year in sensor_annual_data:
+        for year in sensor_annual_data:        
             for month in year['monthArray']:
-                if start_time.year == (year['year'] + 1900) and start_time.month > month['month']:
+                if start_time.year == (year['year'] + 1900) and start_time.month > int(month['month']):
                     continue
-                if end_time.year == (year['year'] + 1900) and end_time.month < month['month']:
+                if end_time.year == (year['year'] + 1900) and end_time.month < int(month['month']):
                     break                
                 for day in month['dayArray']:
-                    if start_time.year == year['year'] and start_time.month == month['month'] and start_time.day > day['date']:
+                    if start_time.year == year['year'] and start_time.month == int(month['month']) and start_time.day > day['date']:
                         continue
                     if end_time.year == year['year'] and end_time.month == month['month'] and end_time.day < day['date']:
                         break
@@ -388,24 +421,19 @@ def get_sensor_index(sensorId, annual_data, monthly_data, daily_data, hourly_dat
     monthly_data_index = -1
     daily_data_index = -1
     hourly_data_index = -1
-    
-#    print('in function get_sensor_index, vlaue of sensorId', sensorId)
         
     for  sensor_year_data in range(len(annual_data)):
         if str(annual_data[sensor_year_data][0]['sensorId']) == sensorId:
             annual_data_index = sensor_year_data
             break;
-    
     for sensor_month_data in range(len(monthly_data)):
         if str(monthly_data[sensor_month_data][0]['sensorId']) == sensorId:
             monthly_data_index =sensor_month_data
             break;
-            
     for sensor_date_data in range(len(daily_data)):
         if str(daily_data[sensor_date_data][0]['sensorId']) == sensorId:
-            daily_data_index = sensor_month_data
+            daily_data_index = sensor_date_data
             break;
-            
     for sensor_hour_data in range(len(hourly_data)):
         if str(hourly_data[sensor_hour_data][0]['sensorId']) == sensorId:
             hourly_data_index = sensor_hour_data
@@ -420,14 +448,18 @@ def organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_t
     labels = []
     labels_set = False
     
+#    print('inside organize all sensor data, attributes', attributes, 'sensorIds', sensorIds)
+    
     for attribute in attributes:
         attribute_values_list = [];
         for sensorId in sensorIds:
+#            print('in line 446')
             (annual_data_index, monthly_data_index, daily_data_index, hourly_data_index) = get_sensor_index(sensorId, 
                                                                                                             annual_data, 
                                                                                                             monthly_data, 
                                                                                                             daily_data, 
                                                                                                             hourly_data)
+#            print('reached line 452')
             sensor_annual_data = []
             sensor_monthly_data = []
             sensor_daily_data = []
@@ -458,7 +490,7 @@ def organize_all_sensor_data(attributes, frequency, sensorIds, start_time, end_t
     return (values, labels)
             
             
-def prepare_bar_graph(values):
+def prepare_bar_graph_quantitative(values):
 #    print('in func preapare_bar_graph')
     attribute_data = [];
     for attribute in values:
@@ -496,7 +528,61 @@ def prepare_bar_graph(values):
 #    print('attribute data len', (attribute_data))
 #    print('attribute data type [0]', type(attribute_data[0]))
     
-def prepare_heat_map(values, sensorIds):
+def prepare_bar_graph_qualitative(values):
+    attribute_data = []
+    for attribute in values:
+        sensor_data_array = []
+        for sensor_data in attribute:
+            sensor_data_array.append(sensor_data)
+        sensor_data_array = prepare_data(np.stack(sensor_data_array, axis=1));
+
+        time_perdiod_data = []
+        for time_period in sensor_data_array:
+            time_perdiod_data.append(pd.Series(time_period).value_counts().to_dict())
+        
+        unique_qualitative_labels = []
+        for time_period in time_perdiod_data:
+            unique_qualitative_labels += time_period.keys()
+        
+        unique_qualitative_labels = list(set(unique_qualitative_labels))       
+        qualitative_label_values_non_percentage = {}
+        for qualitative_label in unique_qualitative_labels:
+            values = []
+            for time_period in time_perdiod_data:
+                if qualitative_label in time_period:
+                    values.append(time_period[qualitative_label])
+                else:
+                    values.append(0)
+            qualitative_label_values_non_percentage[qualitative_label] = values
+        
+        qualitative_label_values_percentage = {}
+        qualitative_label_values_sum = pd.DataFrame(qualitative_label_values_non_percentage.values()).sum()
+        for qualitative_label in qualitative_label_values_non_percentage.keys():
+            values = []
+            for time_period_index in range(len(qualitative_label_values_non_percentage[qualitative_label])):
+                percentage_value = qualitative_label_values_non_percentage[qualitative_label][time_period_index] / qualitative_label_values_sum[time_period_index]
+                percentage_value *= 100
+                percentage_value = round(percentage_value, 2)
+                values.append(percentage_value)
+            qualitative_label_values_percentage[qualitative_label] = values                
+        
+        qualitative_label_enumeration = list(enumerate(unique_qualitative_labels))
+        expected_values = []
+        for time_period_index in range(len(time_perdiod_data)):
+            expected_value = 0
+            for (enumeration_value, label) in qualitative_label_enumeration:
+                expected_value += (qualitative_label_values_percentage[label][time_period_index] / 100.0) * enumeration_value
+            expected_values.append(round(expected_value, 2))
+        
+        attribute_data.append({'non_percentage': qualitative_label_values_non_percentage,
+                               'percentage': qualitative_label_values_percentage,
+                               'expected_values': expected_values,
+                               'enumeration': qualitative_label_enumeration})
+#    print('attributed data **592', attribute_data)
+    return (attribute_data, qualitative_label_enumeration)
+            
+    
+def prepare_heat_map_quantitative(values, sensorIds):
 #    sensorIds = [];
 #    for sensor_set in sensor_sets:
 #        for sensor in sensor_set:
@@ -551,7 +637,32 @@ def prepare_heat_map(values, sensorIds):
 #    print('attribute data len', (attribute_data))
 #    print('attribute data type [0]', type(attribute_data[0]))
     
-def prepare_histogram(values):
+def prepare_heat_map_qualitative(values, sensorIds, qualitative_label_enumeration):
+    attribute_data = [];
+    for attribute in values:
+        expected_values = []
+        for sensor_data in attribute:
+            sensor_expected_values = []
+            for time_period_data in sensor_data:
+#                print('time predio 634', time_period)
+                
+                time_period_data = pd.Series(time_period_data)
+                time_period_data = time_period_data.value_counts().to_dict()
+#                print('line 639', time_period_data)
+                sum_of_qualitative_label_values = sum(time_period_data.values())
+                expected_value = 0
+                for enumeration_value, label in qualitative_label_enumeration:
+#                    print('line 643', enumeration_value, label)
+                    expected_value += enumeration_value * (time_period_data[label] / sum_of_qualitative_label_values)
+#                print('expected value 644', expected_value)
+                sensor_expected_values.append(round(expected_value, 2))
+            expected_values.append(sensor_expected_values)
+        attribute_data.append(expected_values)
+#    print('attribute data 650', attribute_data)
+    return attribute_data
+        
+    
+def prepare_histogram_quantitative(values):
 #    sensorIds = [];
 #    for sensor_set in sensor_sets:
 #        for sensor in sensor_set:
@@ -591,6 +702,20 @@ def prepare_histogram(values):
     return (labels_array, counts_array)
         
     
+def prepare_histogram_qualitative(attribute_data_array):
+#    print('attribute data 695', attribute_data_array)
+    attribute_data = []
+    for attribute in attribute_data_array:
+        labels = []
+        values = []
+        for qualitative_label in attribute['non_percentage']:
+#            print('699 attribute', qualitative_label, sum(attribute['non_percentage'][qualitative_label]))
+            labels.append(qualitative_label)
+            values.append(sum(attribute['non_percentage'][qualitative_label]))
+        attribute_data.append({'labels': labels, 'values': values})
+#    print('attribute data 706', attribute_data)
+            
+    return attribute_data
     
 
 def prepare_data(array):
