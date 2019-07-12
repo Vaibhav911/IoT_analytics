@@ -115,7 +115,7 @@ def main():
 #            print(json.dumps({'data_type': 'qualitative' ,'bar_data': bar_graph_attribute_data, 'heat_map_data': heat_map_attribute_data, 'attributes': attributes,
 #                              'histogram_data': histogram_attribute_data, 'sensorIds': sensorIds}))
             final_data.append({'data_type': 'qualitative' ,'bar_data': bar_graph_attribute_data, 'heat_map_data': heat_map_attribute_data, 'attributes': attributes,
-                              'histogram_data': histogram_attribute_data, 'sensorIds': sensorIds})
+                              'histogram_data': histogram_attribute_data, 'sensorIds': sensorIds, 'labels': labels})
 #    print('final data', final_data)
     print(json.dumps(final_data))
             
@@ -176,14 +176,14 @@ def organize_sensor_data(attribute, frequency, start_time, end_time, sensor_annu
         finallabels = [None for i in range(no_days)]
         for year in sensor_annual_data:        
             for month in year['monthArray']:
-                if start_time.year == (year['year'] + 1900) and start_time.month > int(month['month']):
+                if start_time.year == (int(year['year']) + 1900) and start_time.month > int(month['month']):
                     continue
-                if end_time.year == (year['year'] + 1900) and end_time.month < int(month['month']):
+                if end_time.year == (int(year['year']) + 1900) and end_time.month < int(month['month']):
                     break                
                 for day in month['dayArray']:
-                    if start_time.year == year['year'] and start_time.month == int(month['month']) and start_time.day > day['date']:
+                    if start_time.year == int(year['year']) and start_time.month == int(month['month']) and start_time.day > int(day['date']):
                         continue
-                    if end_time.year == year['year'] and end_time.month == month['month'] and end_time.day < day['date']:
+                    if end_time.year == int(year['year']) and end_time.month == int(month['month']) and end_time.day < int(day['date']):
                         break
                     for hour in day['hourArray']:
                         s_time= date(start_time.year, start_time.month, 
@@ -200,9 +200,9 @@ def organize_sensor_data(attribute, frequency, start_time, end_time, sensor_annu
 
         for month in sensor_monthly_data:
             for day in month['dayArray']:
-                if end_time.month == month['month'] and end_time.day < day['date']:
+                if end_time.month == int(month['month']) and end_time.day < int(day['date']):
                     break;
-                if start_time.month == month['month'] and start_time.day > day['date']:
+                if start_time.month == int(month['month']) and start_time.day > int(day['date']):
                     continue
                 for hour in day['hourArray']:
                     s_time = date(start_time.year, start_time.month, 

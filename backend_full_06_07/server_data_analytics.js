@@ -71,10 +71,14 @@ app.use("/getdata", (req, res) => {
   });
 
   py.stdout.on("end", function() {
-    // console.log("data from python is ", dataString);
+    console.log("data from python is ", dataString);
     // console.log('in js')
-    graphData = JSON.parse(dataString);
-    console.log("data from python is ", JSON.stringify(graphData));
+   
+      graphData = JSON.parse(dataString);
+      res.json(graphData);
+    
+
+    // console.log("\n\n\ndata from python is ", JSON.stringify(graphData));
     // for (var i =0;i<graphData.labels.length;i++)
     // {
     //     if(graphData.labels[i]==null)
@@ -84,7 +88,7 @@ app.use("/getdata", (req, res) => {
     // }
     // res.json(graphData)
     // console.log("response is smnet" + (JSON.stringify(graphData)))
-    res.json(graphData);
+    
   });
 
   async function foo() {
